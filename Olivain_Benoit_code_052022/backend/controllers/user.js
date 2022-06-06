@@ -28,7 +28,9 @@ exports.signup = (request, response) => {
         .then(() =>
           response.status(201).json({ message: "Utilisateur crée !" })
         )
-        .catch((error) => response.status(400).json({ error }));
+        .catch((error) =>
+          response.status(400).json({ error: "Mauvais e-mail" })
+        );
     })
     .catch((error) => response.status(500).json({ error }));
 };

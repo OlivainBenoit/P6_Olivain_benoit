@@ -1,6 +1,7 @@
 const Sauce = require("../models/sauces");
 const fs = require("fs");
 const { request } = require("http");
+// const jwt = require("jsonwebtoken");
 
 exports.createSauces = (request, response) => {
   const sauceObject = JSON.parse(request.body.sauce);
@@ -26,25 +27,33 @@ exports.modifySauces = (request, response) => {
         }`,
       }
     : { ...request.body };
-  if (request.file !== undefined) {
-    Sauce.findOne({ _id: request.params.id })
-      .then((sauce) => {
+  Sauce.findOne({ _id: request.params.id })
+    .then((sauce) => {
+      if (request.auth.userId !== sauce.userId) {
+        return response.status(401).json({ message: "Requete non autorisée" });
+      }
+      if (request.file !== undefined) {
         const filename = sauce.imageUrl.split("/images/")[1];
         fs.unlink(`images/${filename}`, () => {});
-      })
-      .catch((error) => response.status(500).json({ error }));
-  }
-  Sauce.updateOne(
-    { _id: request.params.id },
-    { ...sauceObject, _id: request.params.id }
-  )
-    .then(() => response.status(200).json({ message: "Objet modifié" }))
-    .catch((error) => response.status(400).json({ error }));
+      }
+      Sauce.updateOne(
+        { _id: request.params.id },
+        { ...sauceObject, _id: request.params.id }
+      )
+        .then(() => response.status(200).json({ message: "Objet modifié" }))
+        .catch((error) => response.status(400).json({ error }));
+    })
+    .catch((error) => response.status(500).json({ error }));
 };
 
 exports.deleteSauces = (request, response) => {
   Sauce.findOne({ _id: request.params.id })
     .then((sauce) => {
+      // const token = request.headers.authorization.split(" ")[1];
+      // const decodedToken = jwt.verify(token, "RANDOM_TOKEN_SECRET");
+      if (/*decodedToken.userId*/ request.auth.userId !== sauce.userId) {
+        return response.status(401).json({ message: "Requete non autorisée" });
+      }
       const filename = sauce.imageUrl.split("/images/")[1];
       fs.unlink(`images/${filename}`, () => {
         Sauce.deleteOne({ _id: request.params.id })
